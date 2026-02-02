@@ -788,10 +788,19 @@ for i in stem loop; do
 done
 
 ```
-cat fold/Scer_spar_DMS.gene_variation.process.yml | grep "YDL037C" >> fold/YDL037C.yml
 
-YDL037C
+### count codon gene
 
+```shell
+cd /scratch/wangq/wsn/T2T_pars/result/Scer_spar
 
-    
-    
+perl ../../scripts/count_codon_gene.pl \
+    --origin data_SNPs_DMS_syn.tsv \
+    --output data_SNPs_DMS_syn_codon.tsv
+
+Rscript ../../scripts/count_AT_GC_codon_chi.R \
+    -s DMS \
+    -i /scratch/wangq/wsn/T2T_pars/result \
+    -n Scer_spar
+
+```
