@@ -385,6 +385,11 @@ for i in spar seub; do
     perl SNP_PARS/polarize_snp_vcf.pl SNP_PARS/Scer_${i}_PARS.snp > SNP_PARS/Scer_${i}_PARS.SNPs.tsv
 done
 
+## TO RUN!!
+for i in spar seub; do
+    perl SNP_PARS/polarize_snp_vcf.pl SNP_PARS/Scer_${i}_PARS.snp > SNP_PARS/Scer_${i}_PARS.SNPs.tsv
+done
+
 wc -l SNP_PARS/*.SNPs.tsv|
     grep -v "total$" |
     datamash reverse -W |
@@ -593,6 +598,87 @@ done |
 | cds | 12071326 | 7465762 | 0.6185 |
 
 
+```shell
+cd /scratch/wangq/wsn/T2T_pars/PARS_process
+
+perl ../scripts/blastn_transcript.pl -f ../blast_pars/sce_genes_pars.blast -m 0
+
+for i in spar; do
+    cat ../vep/Scer_${i}_PARS.vep.tsv | 
+        tsv-select -f 1 |
+        sort -u \
+        > Scer_${i}_PARS.snp.rg
+    
+    perl ../scripts/read_fold.pl \
+        --dms ../PARS10 \
+        --gene sce_genes_pars.blast.tsv \
+        --pos Scer_${i}_PARS.snp.rg \
+        > Scer_${i}_PARS_fail_pos.txt
+
+    perl ../scripts/process_vars_in_fold.pl --file Scer_${i}_PARS.gene_variation.yml
+done
+
+## -- gene --
+cat sce_genes_pars.blast.tsv |
+    perl -nla -e '
+        $F[2] eq "Mito" and next;
+        print qq{$F[2]:$F[3]-$F[4]};
+    ' |
+    sort |
+    spanr cover stdin -o sce_genes.yml
+
+## -- intron --
+cat ../sgd/orf_coding_all.fasta |
+    perl -n -MAlignDB::IntSpan -e '
+        />/ or next;
+        /Chr\s+(\w+)\s+from\s+([\d,-]+)/ or next;
+        $1 eq "Mito" and next;
+
+        my $chr = $1;
+        my $range = $2;
+        my @ranges = sort { $a <=> $b } grep {/^\d+$/} split /,|\-/, $range;
+        my $intspan = AlignDB::IntSpan->new()->add_range(@ranges);
+        my $hole = $intspan->holes;
+
+        printf qq{%s:%s\n}, $chr, $hole->as_string if $hole->is_not_empty;
+    ' |
+    spanr cover stdin -o sce_intron.yml
+
+# produce orf_genomic set
+cat ../sgd/orf_genomic_all.fasta |
+    perl -n -e '
+        />/ or next;
+        /Chr\s+(\w+)\s+from\s+(\d+)\-(\d+)/ or next;
+        $1 eq "Mito" and next;
+
+        if ($2 == $3) {
+            print qq{$1:$2\n};
+        }
+        elsif ($2 < $3) {
+            print qq{$1:$2-$3\n};
+        }
+        else {
+            print qq{$1:$3-$2\n};
+        }
+    ' |
+    spanr cover stdin -o sce_orf_genomic.yml
+
+## -- mRNA、utr、CDS --
+spanr compare --op diff sce_genes.yml sce_orf_genomic.yml -o sce_utr.yml
+spanr compare --op diff sce_genes.yml sce_intron.yml -o sce_mRNA.yml
+spanr compare --op diff sce_mRNA.yml sce_utr.yml -o sce_cds.yml
+
+for NAME in genes intron orf_genomic utr mRNA cds; do
+    spanr stat ../blast_dms/S288c.sizes "sce_${NAME}.yml" --all |
+        sed '1 s/^/Name,/' |
+        sed "2 s/^/${NAME},/"
+done |
+    tsv-uniq |
+    mlr --icsv --omd cat
+
+```
+
+
 ## 8 SNP analysis
 
 ### count per gene GC content 
@@ -707,7 +793,7 @@ for i in spar seub; do
 
     cat result/Scer_${i}/data_SNPs_DMS_mRNA.tsv |
         tsv-filter -H --str-eq "CDS_position:-" \
-        > result/Scer_${i}/data_SNPs_PARS_utr.tsv
+        > result/Scer_${i}/data_SNPs_DMS_utr.tsv
 
     cat result/Scer_${i}/data_SNPs_DMS_mRNA.tsv |
         tsv-filter -H --or \
@@ -723,6 +809,7 @@ for i in spar seub; do
             --str-eq "consequence:stop_lost" \
         > result/Scer_${i}/data_SNPs_DMS_nsy.tsv
 done
+
 
 for i in spar seub; do
     printf "Area\tSNPs\tGenes\n" > result/Scer_${i}/count.tsv
@@ -772,6 +859,20 @@ Rscript ../../scripts/count_AT_GC_gene_trait.R \
     -i /scratch/wangq/wsn/T2T_pars/result \
     -n Scer_spar
 
+
+for i in syn nsy; do
+    perl ../../scripts/count_position_gene.pl \
+        --file ../../DMS_process/Scer_spar_DMS.gene_variation.process.yml \
+        --origin data_SNPs_DMS_${i}.tsv \
+        --output data_SNPs_DMS_${i}_pos.tsv
+
+    Rscript ../../scripts/count_AT_GC_gene_trait.R \
+        -s DMS \
+        -i /scratch/wangq/wsn/T2T_pars/result \
+        -n Scer_spar \
+        -r ${i}
+done
+
 # calculate stem/loop length without SNP
 cat data_SNPs_DMS_mRNA.tsv |
     perl -nl -a -F"\t" -e 'print qq{$F[12]};' |
@@ -802,5 +903,65 @@ Rscript ../../scripts/count_AT_GC_codon_chi.R \
     -s DMS \
     -i /scratch/wangq/wsn/T2T_pars/result \
     -n Scer_spar
+
+```
+
+
+### summary
+
+```shell
+cd /scratch/wangq/wsn/T2T_pars/result/Scer_spar
+
+
+
+
+# calculate gama value
+for i in mRNA nsy syn tRNA 4D; do
+    python gama.py -i gama/DMS_${i}_stat_SNPs_freq_10.csv -n 790 -o gama/DMS_${i}_gama.txt
+    cat DMS_${i}_gama.txt >> gama/figBC.txt
+done
+
+for i in mRNA nsy syn; do
+    for type in stem loop;do 
+        for GC in AT_GC GC_AT; do
+            python gama.py -i gamaE/DMS_${i}_stat_${type}_${GC}_freq_10.csv \
+                -n 790 -l ${type}_${GC} \
+                -o gamaE/DMS_${i}_stat_${type}_${GC}_gama.txt
+        done
+    done
+
+    cat gamaE/DMS_${i}_stat_${type}_${GC}_gama.txt >> gamaE/DMS_${i}_gama.txt
+done
+
+for i in mRNA nsy syn; do
+    for type in stem loop;do 
+        for GC in AT_GC GC_AT; do
+            cat gamaE/DMS_${i}_stat_${type}_${GC}_gama.txt >> gamaE/DMS_${i}_gama.txt
+        done
+    done
+done
+
+for i in mRNA nsy syn; do
+    for type in stem loop;do 
+        for GC in AT_GC GC_AT; do
+            for length in 1 2 3 4 5 6 7 8 9 10;do
+                python gama.py -i figF/DMS_${i}_stat_${type}_${GC}_freq_10.csv \
+                    -n 790 -l ${type}_${GC} \
+                    -c ${i}_${length} \
+                    -o gamaF/DMS_${i}_stat_${type}_${GC}_gama_${length}.txt
+            done
+        done
+    done
+done
+
+for i in mRNA ; do
+    for type in stem loop;do 
+        for GC in AT_GC GC_AT; do
+                tr < figF/DMS_${i}_stat_${type}_${GC}_freq_10.tsv "\t" ","  >> DMS_${i}_stat_${type}_${GC}_freq_10.csv
+        done
+    done
+done
+
+
 
 ```
