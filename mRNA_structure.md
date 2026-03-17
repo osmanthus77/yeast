@@ -20,16 +20,18 @@ brew install faops lastz multiz sparsemem
 curl -fsSL https://raw.githubusercontent.com/wang-q/App-Egaz/master/share/check_dep.sh | bash
 
 # perl modules
-cpanm App::Fasops App::Rangeops App::Egaz
+cpanm YAML::Syck Path::Tiny 
+cpanm Bio::Perl 
+cpanm AlignDB::IntSpan AlignDB::Stopwatch
+cpanm App::Fasops App::Rangeops App::Egaz App::RL
 cpanm Statistics::ChisqIndep
 
 # R packages
 parallel -j 1 -k --line-buffer '
     Rscript -e '\'' if (!requireNamespace("{}", quietly = TRUE)) { install.packages("{}", repos="https://mirrors.tuna.tsinghua.edu.cn/CRAN") } '\''
     ' ::: \
-        getopt gsubfn RSQLite sqldf sm remotes \
-        extrafont ggplot2 scales gridExtra pander \
-        readr plyr dplyr proto reshape ape
+        dplyr readr tidyr getopt \
+        sqldf RSQLite gsubfn proto 
 
 # cargo
 cargo install intspan
@@ -43,7 +45,6 @@ cargo install --path . --force #--offline
 ## 1 data download
 
 genome download from article [*From genotype to phenotype with 1,086 near telomere-to-telomere yeast genomes*](https://www.nature.com/articles/s41586-025-09637-0)
-
 
 
 
@@ -137,8 +138,6 @@ mkdir -p Scer_n639_pair_refine
 bsub -q mpi -n 48 bash Scer_n639_pair_refine/refine.sh
 #rm -fr Scer_n639_pair
 
-
-
 ```
 
 
@@ -162,7 +161,6 @@ blastn -task blastn -evalue 1e-3 -num_threads 4 -num_descriptions 10 -num_alignm
 perl ../scripts/blastn_transcript.pl -f sce_genes_dms.blast -m 0
 
 ```
-
 
 ## 5 gene filter
 
@@ -358,7 +356,6 @@ wc -l Scer_n639_vcf_merge/*.SNPs.tsv|
 | Scer_n639_vcf_merge/Scer_spar_DMS.SNPs.tsv | 1546939 |
 
 
-
 ## 6 VEP
 
 ```shell
@@ -394,6 +391,10 @@ wc -l *.upload.tsv |
 
 upload `upload.tsv` to https://asia.ensembl.org/Tools/VEP
 
+- Species: Saccharomyces cerevisiae (Saccharomyces cerevisiae)
+- Additional_annotations:
+    - Upstream/Downstream distance (bp): 1
+- Download VEP format profiles to 'vep/', and rename it to '.vep.txt'
 
 ```shell
 cd /scratch/wangq/wsn/T2T_pars/vep
