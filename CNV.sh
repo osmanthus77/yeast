@@ -1,3 +1,5 @@
+## Gene Copy Number Analysis in yeast
+
 # working directory:
 # all genome fasta in one directory(genomes)
 # pgr-repeat.sh in 'scripts' directory
