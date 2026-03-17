@@ -5,6 +5,8 @@ reference from https://github.com/wang-q/pars/blob/master/README.md#cut-mrna-ali
 ## 0 Installation
 
 ```shell
+## installation under mac or linux
+
 # homebrew
 brew install parallel pigz wget aria2 pv
 brew install bcftools blast samtools mafft
@@ -13,7 +15,7 @@ brew tap brewsci/bio
 brew install raxml
 
 brew tap wang-q/tap
-brew install faops lastz multiz sparsemem intspan
+brew install faops lastz multiz sparsemem
 
 curl -fsSL https://raw.githubusercontent.com/wang-q/App-Egaz/master/share/check_dep.sh | bash
 
@@ -28,6 +30,13 @@ parallel -j 1 -k --line-buffer '
         getopt gsubfn RSQLite sqldf sm remotes \
         extrafont ggplot2 scales gridExtra pander \
         readr plyr dplyr proto reshape ape
+
+# cargo
+cargo install intspan
+cargo install --path . --force #--offline
+
+curl -fsSL https://github.com/wang-q/hnsm/releases/download/v0.3.4/hnsm-x86_64-apple-darwin.tar.gz
+cargo install --path . --force #--offline
 
 ```
 
@@ -282,10 +291,18 @@ done
 
 # vcf concat and sort
 mkdir Scer_n639_vcf_concat
-bsub -q mpi -n 48 bash Scer_n639_vcf_concat/concat.sh
+cat n639.lst | parallel --no-run-if-empty --linebuffer -k -j 12 --tagstring "TASK {}" '
+    mkdir -p Scer_n639_vcf_concat/{}
+    bcftools concat Scer_n639_vcf_modify/{}/*.vcf --output-type v --output Scer_n639_vcf_concat/{}/{}.vcf
+    bcftools sort Scer_n639_vcf_concat/{}/{}.vcf --output Scer_n639_vcf_concat/{}/{}.sort.vcf
+    bcftools view -s ^S288c Scer_n639_vcf_concat/{}/{}.sort.vcf --output-type v --output Scer_n639_vcf_concat/{}/{}_sample.sort.vcf
+    bgzip Scer_n639_vcf_concat/{}/{}_sample.sort.vcf
+    bcftools index -t Scer_n639_vcf_concat/{}/{}_sample.sort.vcf.gz
+'
 find Scer_n639_vcf_concat -mindepth 2 -maxdepth 2 -name '*_sample.sort.vcf.gz' | sort | grep -v "S288cvsspar" > Scer_seub_639.lst
 find Scer_n639_vcf_concat -mindepth 2 -maxdepth 2 -name '*_sample.sort.vcf.gz' | sort | grep -v "S288cvsseub" > Scer_spar_639.lst
 
+# vcf merge
 mkdir Scer_n639_vcf_merge
 bcftools merge -l Scer_seub_639.lst --output-type z --output Scer_n639_vcf_merge/Scer_seub.vcf.gz
 bcftools merge -l Scer_spar_639.lst --output-type z --output Scer_n639_vcf_merge/Scer_spar.vcf.gz
