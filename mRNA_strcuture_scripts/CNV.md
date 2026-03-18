@@ -4,17 +4,21 @@
   - [Get duplicated regions in genomes](#get-duplicated-regions-in-genomes)
   - [BLAST](#blast)
   - [Process blast result](#process-blast-result)
-    - [lift coordinates](#lift-coordinates)
-    - [merge hit](#merge-hit)
+    - [Lift coordinates](#lift-coordinates)
+    - [Merge hit](#merge-hit)
     - [Filter](#filter)
+  - [Statistics on copies](#statistics-on-copies)
 
 
 ## Get duplicated regions in genomes
 
 ```shell
+mkdir -p ~/project/yeast/cnv/genomes
+cd ~/project/yeast/cnv
+
 echo "==> get duplicated regions..."
-for f in ${genome_dir}/*"$genome_suffix"; do
-    basename "$f" "$genome_suffix"
+for f in genomes/*.Final.Fasta; do
+    basename "$f" ".Final.Fasta"
 done > genome.lst
 
 parallel -j 24 '
@@ -23,11 +27,14 @@ parallel -j 24 '
     perl scripts/duplicate_merge.pl -i repeat/{}/duplicated_regions.rg -o repeat/{}/duplicated_regions_merge.rg
     pgr fa range genomes/{}.Final.fasta -r repeat/{}/duplicated_regions_merge.rg -o repeat/{}/duplicated_regions.fa
 ' :::: genome.lst
+
 ```
 
 ## BLAST
 
 ```shell
+cd ~/project/yeast/cnv
+
 echo "==> BLAST..."
 
 parallel -j 12 '
@@ -56,9 +63,12 @@ parallel -j 24 --colsep '\t' '
 
 ## Process blast result
 
-### lift coordinates
+### Lift coordinates
 
 ```shell
+cd ~/project/yeast/cnv
+
+
 # header:qseqid  qlen  sstrand  sseqid  slen  chrom  sstart  send  len_aa  len_ratio bitscore  pident  evalue  qcovs
 echo "==> lift coordinates..."
 
@@ -67,9 +77,11 @@ parallel -j 24 --linebuffer --bar '
 ' :::: genome.lst
 ```
 
-### merge hit
+### Merge hit
 
 ```shell
+cd ~/project/yeast/cnv
+
 echo "==> merging hits..."
 
 parallel -j 24 --linebuffer --bar '
@@ -82,6 +94,8 @@ parallel -j 24 --linebuffer --bar '
 
 ```shell
 # filter by pident、qcovs
+cd ~/project/yeast/cnv
+
 echo "==> filter BLAST results..."
 
 parallel -j 24 --linebuffer --bar '
@@ -90,9 +104,13 @@ parallel -j 24 --linebuffer --bar '
         sort -k1,1 -k6,6 -k7,7n |
         uniq > repeat/{}/{}_filter.tsv
 ' :::: genome.lst
+```
 
+## Statistics on copies
 
-## --- Statistics on copies --
+```shell
+cd ~/project/yeast/cnv
+
 cat genome.lst | xargs -I {} mkdir -p copy_num/{}
 
 # all genes
