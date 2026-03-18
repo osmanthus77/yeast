@@ -32,7 +32,7 @@ while (my $line = <$fh>) {
     my $total_samples = scalar(@samples_raw);
     my $missing_rate = $missing_count / $total_samples;
 
-    next if $missing_rate >= 0.01;
+    #next if $missing_rate >= 0.01;
 
     # remove missing samples
     my @valid_samples = grep { $_ ne '.' } @samples_raw;
