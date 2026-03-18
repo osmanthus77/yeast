@@ -1,6 +1,6 @@
 # mRNA structure in yeast
 
-reference from https://github.com/wang-q/pars/blob/master/README.md#cut-mrna-alignments-and-extract-snp-list
+reference from https://github.com/wang-q/pars/blob/master/README.md
 
 ## 0 Installation
 
