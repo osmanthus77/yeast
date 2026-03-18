@@ -42,15 +42,15 @@ cargo install --path . --force #--offline
 
 ```
 
-## 1 data download
+## 1 Data download
 
 genome download from article [*From genotype to phenotype with 1,086 near telomere-to-telomere yeast genomes*](https://www.nature.com/articles/s41586-025-09637-0)
 
 
 
-## 2 prepare sequences
+## 2 Prepare sequences
 
-### 2.1 nr by mash
+### Deduplicate genomes
 
 ```shell
 mkdir -p /scratch/wangq/wsn/T2T_pars/mash
@@ -68,7 +68,7 @@ cut -f 1 cluster_0.0005.tsv >> nr.lst
 
 
 
-### 2.2 prepare sequences
+### Prepare sequences
 
 ```shell
 cd /scratch/wangq/wsn/T2T_pars/
@@ -141,7 +141,7 @@ bsub -q mpi -n 48 bash Scer_n639_pair_refine/refine.sh
 ```
 
 
-## 4 blast
+## 4 Blast
 
 ```shell
 cat DMS_map_seq_prediction_summary_with_sequences.csv | sed '1d' | cut -d "," -f 1,16 | sed -E 's/^/>/g' | sed -E 's/,/\n/g' >> sce_genes_dms.fasta
@@ -162,9 +162,9 @@ perl ../scripts/blastn_transcript.pl -f sce_genes_dms.blast -m 0
 
 ```
 
-## 5 gene filter
+## 5 Gene filter
 
-### create protein coding gene list
+### Create protein coding gene list
 
 ```shell
 mkdir -p /scratch/wangq/wsn/T2T_pars/gene_filter_dms
@@ -241,7 +241,7 @@ spanr some genes.merge.yml DMS-non-overlapped.lst -o genes.non-overlapped.yml
 
 ```
 
-### extract SNP
+### Extract SNP
 
 ```shell
 cd /scratch/wangq/wsn/T2T_pars/gene_filter_dms
@@ -349,11 +349,12 @@ wc -l Scer_n639_vcf_merge/*.SNPs.tsv|
     datamash reverse -W |
     (echo -e "File\tCount" && cat) |
     mlr --itsv --omd cat
+
 ```
 | File | Count |
 | --- | --- |
-| Scer_n639_vcf_merge/Scer_seub_DMS.SNPs.tsv | 1356644 |
-| Scer_n639_vcf_merge/Scer_spar_DMS.SNPs.tsv | 1546939 |
+| Scer_n639_vcf_merge/Scer_seub_DMS.SNPs.tsv | 1354256 |
+| Scer_n639_vcf_merge/Scer_spar_DMS.SNPs.tsv | 1544166 |
 
 
 ## 6 VEP
@@ -385,8 +386,8 @@ wc -l *.upload.tsv |
 ```
 | File | Count |
 | --- | --- |
-| Scer_seub_DMS.upload.tsv | 1356644 |
-| Scer_spar_DMS.upload.tsv | 1546939 |
+| Scer_seub_DMS.upload.tsv | 1354256 |
+| Scer_spar_DMS.upload.tsv | 1544166 |
 
 
 upload `upload.tsv` to https://asia.ensembl.org/Tools/VEP
@@ -427,7 +428,7 @@ wc -l *.vep.tsv |
 
 
 
-## 7 process DMS data
+## 7 Process DMS data
 
 ```shell
 cd /scratch/wangq/wsn/T2T_pars/DMS_process
@@ -529,7 +530,7 @@ done |
 
 ## 8 SNP analysis
 
-### count per gene GC content 
+### Count per gene GC content 
 
 ```shell
 cd /scratch/wangq/wsn/T2T_pars/
@@ -550,7 +551,7 @@ done
 
 ```
 
-### count SNPs and gene
+### Count SNPs and gene
 
 ```shell
 cd /scratch/wangq/wsn/T2T_pars/
@@ -677,7 +678,7 @@ done
 ```
 
 
-### count A/T <-> G/C
+### Count A/T <-> G/C
 
 ```shell
 cd /scratch/wangq/wsn/T2T_pars/result
@@ -692,7 +693,7 @@ done
 
 ```
 
-### count stem length selection
+### Count stem length selection
 
 ```shell
 cd /scratch/wangq/wsn/T2T_pars/result/Scer_spar
@@ -745,7 +746,7 @@ done
 
 ```
 
-### count codon gene
+### Count codon gene
 
 ```shell
 cd /scratch/wangq/wsn/T2T_pars/result/Scer_spar
@@ -762,7 +763,7 @@ Rscript ../../scripts/count_AT_GC_codon_chi.R \
 ```
 
 
-### calculate gama
+### Calculate gama
 
 ```shell
 ## ---- calculate gama value ----
